@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>鄭和の大航海 1405 | Zheng He's Treasure Fleet</title>
+<meta name="description" content="62隻・27,800人の宝船艦隊を率いて南シナ海からインド洋へ。交易・航海・外交の歴史シミュレーションゲーム">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#0a1628;--navy2:#0f2035;--gold:#d4a853;--gold2:#f0d68a;
+  --teal:#2dd4bf;--cream:#f5f0e1;--rust:#c45c3a;--wine:#8b2252;
+  --sea1:#0b2545;--sea2:#13395a;--sea3:#1b4d72;
+}
+@keyframes wave{0%,100%{transform:translateX(0)}50%{transform:translateX(-20px)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes glow{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ripple{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.5);opacity:0}}
+@keyframes compass{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes sailFlap{0%,100%{transform:skewX(0deg)}25%{transform:skewX(3deg)}75%{transform:skewX(-2deg)}}
+html,body{width:100%;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif;background:var(--navy);color:var(--cream)}
+#app{width:100%;height:100%;position:relative;overflow:hidden}
+
+/* ===== TITLE SCREEN ===== */
+#title-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#061224 0%,#0b2545 30%,#1a4a6e 60%,#d4763a 85%,#f0a050 95%,#f5c878 100%);z-index:10}
+.title-ocean{position:absolute;bottom:0;left:0;right:0;height:45%;
+  background:linear-gradient(180deg,rgba(11,37,69,.0) 0%,#0b2545 15%,#0a1f3d 100%)}
+.title-waves{position:absolute;bottom:0;left:-40px;right:-40px;height:120px;opacity:.3}
+.title-wave{position:absolute;bottom:0;left:0;right:0;height:40px;border-radius:50% 50% 0 0;animation:wave 4s ease-in-out infinite}
+.title-wave:nth-child(1){background:rgba(45,212,191,.15);bottom:60px;animation-delay:0s}
+.title-wave:nth-child(2){background:rgba(45,212,191,.1);bottom:35px;animation-delay:1s}
+.title-wave:nth-child(3){background:rgba(45,212,191,.08);bottom:10px;animation-delay:2s}
+
+.title-content{position:relative;z-index:2;text-align:center;padding:0 20px;animation:fadeIn .8s ease-out}
+.title-year{font-size:clamp(16px,4vw,22px);color:var(--gold);letter-spacing:.3em;margin-bottom:8px;font-weight:300}
+.title-main{font-size:clamp(32px,8vw,56px);font-weight:900;
+  background:linear-gradient(180deg,var(--gold2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1.2;margin-bottom:4px;text-shadow:none}
+.title-sub{font-size:clamp(14px,3vw,18px);color:rgba(245,240,225,.7);margin-bottom:24px;font-weight:300}
+.title-fleet{font-size:clamp(40px,10vw,80px);animation:bob 3s ease-in-out infinite;margin-bottom:16px}
+.title-desc{font-size:clamp(12px,2.5vw,15px);color:rgba(245,240,225,.6);max-width:480px;line-height:1.7;margin-bottom:32px}
+
+.btn{display:inline-block;padding:14px 40px;border:2px solid var(--gold);border-radius:8px;
+  background:rgba(212,168,83,.15);color:var(--gold);font-size:clamp(16px,3vw,20px);font-weight:700;
+  cursor:pointer;transition:all .2s;letter-spacing:.1em;-webkit-tap-highlight-color:transparent;user-select:none}
+.btn:hover,.btn:active{background:rgba(212,168,83,.3);transform:scale(1.03)}
+.btn-small{padding:10px 24px;font-size:clamp(13px,2.5vw,16px)}
+.btn-danger{border-color:var(--rust);color:var(--rust);background:rgba(196,92,58,.1)}
+.btn-danger:hover{background:rgba(196,92,58,.25)}
+.btn-teal{border-color:var(--teal);color:var(--teal);background:rgba(45,212,191,.1)}
+.btn-teal:hover{background:rgba(45,212,191,.25)}
+
+.lang-toggle{position:absolute;top:16px;right:16px;z-index:20;padding:6px 14px;
+  border:1px solid rgba(212,168,83,.4);border-radius:20px;background:rgba(10,22,40,.6);
+  color:var(--gold);font-size:13px;cursor:pointer;backdrop-filter:blur(4px)}
+
+/* ===== MAP SCREEN ===== */
+#map-screen{position:absolute;inset:0;display:none;flex-direction:column;
+  background:linear-gradient(180deg,var(--sea1),var(--sea2),var(--sea3));z-index:5}
+
+.resource-bar{display:flex;gap:2px;padding:6px 8px;background:rgba(10,22,40,.85);
+  border-bottom:1px solid rgba(212,168,83,.2);flex-wrap:wrap;justify-content:center;
+  backdrop-filter:blur(8px);z-index:5}
+.res-item{display:flex;align-items:center;gap:3px;padding:3px 7px;border-radius:12px;
+  background:rgba(245,240,225,.06);font-size:clamp(11px,2.2vw,13px);white-space:nowrap}
+.res-icon{font-size:clamp(13px,2.5vw,16px)}
+.res-val{color:var(--gold2);font-weight:700;min-width:20px;text-align:right}
+.res-label{color:rgba(245,240,225,.5);font-size:clamp(9px,1.8vw,11px)}
+
+.map-container{flex:1;position:relative;overflow:hidden}
+#map-canvas{width:100%;height:100%;display:block}
+
+.port-label{position:absolute;transform:translate(-50%,-50%);text-align:center;pointer-events:none;
+  transition:all .3s;z-index:3}
+.port-dot{width:12px;height:12px;border-radius:50%;background:var(--gold);margin:0 auto 4px;
+  box-shadow:0 0 8px rgba(212,168,83,.6);transition:all .3s}
+.port-dot.visited{background:var(--teal);box-shadow:0 0 8px rgba(45,212,191,.6)}
+.port-dot.current{width:16px;height:16px;background:var(--gold2);animation:glow 1.5s ease-in-out infinite;
+  box-shadow:0 0 16px rgba(212,168,83,.8)}
+.port-dot.next{border:2px dashed var(--gold);background:transparent;animation:glow 2s ease-in-out infinite}
+.port-name{font-size:clamp(9px,1.8vw,12px);color:var(--cream);text-shadow:0 1px 4px rgba(0,0,0,.8);
+  white-space:nowrap;font-weight:600}
+
+.ship-icon{position:absolute;font-size:clamp(24px,5vw,36px);transform:translate(-50%,-50%);
+  z-index:4;animation:bob 2.5s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));
+  transition:left 1.5s ease-in-out, top 1.5s ease-in-out}
+
+.map-panel{position:absolute;bottom:0;left:0;right:0;padding:12px 16px 20px;
+  background:linear-gradient(transparent,rgba(10,22,40,.95) 30%);z-index:4}
+.map-panel-inner{max-width:500px;margin:0 auto;text-align:center}
+.map-port-name{font-size:clamp(18px,4vw,24px);color:var(--gold);font-weight:700;margin-bottom:4px}
+.map-port-desc{font-size:clamp(11px,2.2vw,14px);color:rgba(245,240,225,.7);margin-bottom:10px;line-height:1.5}
+.map-day{font-size:clamp(11px,2vw,13px);color:var(--teal);margin-bottom:10px}
+.map-buttons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+/* ===== EVENT MODAL ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(6,18,36,.85);z-index:50;
+  display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.active{display:flex}
+.modal{background:linear-gradient(160deg,#0f2035,#162d4a);border:1px solid rgba(212,168,83,.3);
+  border-radius:16px;padding:24px 20px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;
+  animation:slideUp .4s ease-out;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-emoji{font-size:48px;text-align:center;margin-bottom:12px}
+.modal-title{font-size:clamp(18px,4vw,22px);color:var(--gold);text-align:center;font-weight:700;margin-bottom:12px}
+.modal-text{font-size:clamp(13px,2.5vw,15px);color:rgba(245,240,225,.85);line-height:1.7;margin-bottom:16px;text-align:center}
+.modal-choices{display:flex;flex-direction:column;gap:8px}
+.modal-choice{padding:12px 16px;border:1px solid rgba(212,168,83,.25);border-radius:10px;
+  background:rgba(245,240,225,.04);cursor:pointer;transition:all .2s;text-align:left}
+.modal-choice:hover,.modal-choice:active{background:rgba(212,168,83,.12);border-color:var(--gold)}
+.modal-choice-label{font-size:clamp(14px,2.8vw,16px);color:var(--gold2);font-weight:600;margin-bottom:2px}
+.modal-choice-desc{font-size:clamp(11px,2.2vw,13px);color:rgba(245,240,225,.6)}
+.modal-result{padding:14px;border-radius:10px;margin-bottom:12px;text-align:center;
+  font-size:clamp(13px,2.5vw,15px);line-height:1.6}
+.modal-result.good{background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.3);color:var(--teal)}
+.modal-result.bad{background:rgba(196,92,58,.1);border:1px solid rgba(196,92,58,.3);color:var(--rust)}
+.modal-result.neutral{background:rgba(212,168,83,.1);border:1px solid rgba(212,168,83,.3);color:var(--gold)}
+
+/* ===== PORT/TRADE SCREEN ===== */
+#port-screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:8;
+  background:linear-gradient(180deg,var(--navy),var(--navy2))}
+.port-header{text-align:center;padding:16px 16px 8px;
+  background:linear-gradient(180deg,rgba(15,32,53,.9),transparent)}
+.port-header-emoji{font-size:clamp(36px,8vw,52px);margin-bottom:4px}
+.port-header-name{font-size:clamp(22px,5vw,30px);color:var(--gold);font-weight:900;margin-bottom:2px}
+.port-header-sub{font-size:clamp(12px,2.5vw,15px);color:rgba(245,240,225,.6)}
+
+.port-body{flex:1;overflow-y:auto;padding:12px 16px 100px;-webkit-overflow-scrolling:touch}
+.port-section{margin-bottom:16px}
+.port-section-title{font-size:clamp(14px,2.8vw,17px);color:var(--gold);font-weight:700;
+  margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(212,168,83,.2)}
+
+.fact-box{background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.2);
+  border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.fact-box p{font-size:clamp(12px,2.4vw,14px);color:rgba(245,240,225,.8);line-height:1.7}
+.fact-icon{color:var(--teal);margin-right:4px}
+
+.trade-grid{display:grid;grid-template-columns:1fr;gap:6px}
+.trade-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+  background:rgba(245,240,225,.04);border:1px solid rgba(245,240,225,.06)}
+.trade-good-name{flex:1;font-size:clamp(13px,2.5vw,15px);min-width:0}
+.trade-good-emoji{font-size:18px;flex-shrink:0}
+.trade-price{font-size:clamp(12px,2.2vw,14px);color:var(--gold);min-width:40px;text-align:right}
+.trade-stock{font-size:clamp(11px,2vw,12px);color:rgba(245,240,225,.5);min-width:35px;text-align:center}
+.trade-btn{padding:5px 10px;border-radius:6px;border:1px solid;font-size:clamp(12px,2.2vw,14px);
+  cursor:pointer;font-weight:600;-webkit-tap-highlight-color:transparent;transition:all .15s;min-width:36px}
+.trade-buy{border-color:rgba(45,212,191,.4);color:var(--teal);background:rgba(45,212,191,.08)}
+.trade-buy:hover{background:rgba(45,212,191,.2)}
+.trade-buy:disabled{opacity:.3;cursor:not-allowed}
+.trade-sell{border-color:rgba(212,168,83,.4);color:var(--gold);background:rgba(212,168,83,.08)}
+.trade-sell:hover{background:rgba(212,168,83,.2)}
+.trade-sell:disabled{opacity:.3;cursor:not-allowed}
+
+.diplo-box{text-align:center;padding:12px;border-radius:12px;
+  background:rgba(212,168,83,.06);border:1px solid rgba(212,168,83,.15)}
+.diplo-box p{font-size:clamp(12px,2.4vw,14px);color:rgba(245,240,225,.7);margin-bottom:10px;line-height:1.5}
+
+.port-footer{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 20px;
+  background:linear-gradient(transparent,var(--navy) 30%);z-index:9;text-align:center}
+
+/* ===== RESULT SCREEN ===== */
+#result-screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;background:linear-gradient(180deg,#061224,#0b2545,#162d4a);z-index:10;
+  padding:20px;overflow-y:auto}
+.result-content{max-width:440px;width:100%;animation:fadeIn .8s ease-out}
+.result-title{font-size:clamp(24px,6vw,36px);color:var(--gold);text-align:center;font-weight:900;margin-bottom:4px}
+.result-subtitle{font-size:clamp(13px,2.5vw,16px);color:rgba(245,240,225,.6);text-align:center;margin-bottom:20px}
+.result-score-total{font-size:clamp(40px,10vw,60px);color:var(--gold2);text-align:center;font-weight:900;margin-bottom:4px}
+.result-rank{font-size:clamp(16px,3.5vw,22px);text-align:center;margin-bottom:20px;font-weight:700}
+.result-breakdown{margin-bottom:20px}
+.result-row{display:flex;justify-content:space-between;padding:8px 12px;
+  border-bottom:1px solid rgba(245,240,225,.06);font-size:clamp(13px,2.5vw,15px)}
+.result-row-label{color:rgba(245,240,225,.7)}
+.result-row-val{color:var(--gold);font-weight:700}
+.result-fact{background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.2);
+  border-radius:12px;padding:14px;margin-bottom:20px;text-align:center}
+.result-fact p{font-size:clamp(12px,2.4vw,14px);color:rgba(245,240,225,.8);line-height:1.7}
+.result-buttons{text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding-bottom:20px}
+
+/* ===== SAILING ANIMATION ===== */
+#sailing-overlay{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#061224,#0b2545 40%,#13395a 70%,#1b4d72)}
+#sailing-overlay.active{display:flex}
+.sailing-content{text-align:center;animation:fadeIn .6s ease-out}
+.sailing-ship{font-size:clamp(60px,15vw,100px);animation:bob 2s ease-in-out infinite;margin-bottom:16px}
+.sailing-text{font-size:clamp(16px,3.5vw,22px);color:var(--cream);margin-bottom:8px;font-weight:600}
+.sailing-days{font-size:clamp(13px,2.5vw,16px);color:var(--teal)}
+.sailing-dots{margin-top:16px;display:flex;gap:8px;justify-content:center}
+.sailing-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:glow 1.2s ease-in-out infinite}
+.sailing-dot:nth-child(2){animation-delay:.3s}
+.sailing-dot:nth-child(3){animation-delay:.6s}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(212,168,83,.3);border-radius:2px}
+
+/* ===== MOBILE ===== */
+@media(max-width:420px){
+  .resource-bar{gap:1px;padding:4px 4px}
+  .res-item{padding:2px 5px;font-size:11px}
+  .modal{padding:18px 14px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TITLE SCREEN -->
+<div id="title-screen">
+  <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
+  <div class="title-ocean">
+    <div class="title-waves">
+      <div class="title-wave"></div><div class="title-wave"></div><div class="title-wave"></div>
+    </div>
+  </div>
+  <div class="title-content">
+    <div class="title-year">— A.D. 1405 —</div>
+    <div class="title-main" id="titleMain">鄭和の大航海</div>
+    <div class="title-sub" id="titleSub">Zheng He's Treasure Fleet</div>
+    <div class="title-fleet">⛵🚢⛵</div>
+    <p class="title-desc" id="titleDesc">永楽帝の命を受け、62隻・27,800人の宝船艦隊が南京を出航する。南シナ海からインド洋を越え、7つの港で交易と外交を成し遂げよ。</p>
+    <button class="btn" onclick="startGame()" id="startBtn">出航する</button>
+  </div>
+</div>
+
+<!-- MAP SCREEN -->
+<div id="map-screen">
+  <div class="resource-bar" id="resourceBar"></div>
+  <div class="map-container" id="mapContainer">
+    <canvas id="map-canvas"></canvas>
+    <div class="ship-icon" id="shipIcon">🚢</div>
+  </div>
+  <div class="map-panel">
+    <div class="map-panel-inner">
+      <div class="map-day" id="mapDay"></div>
+      <div class="map-port-name" id="mapPortName"></div>
+      <div class="map-port-desc" id="mapPortDesc"></div>
+      <div class="map-buttons" id="mapButtons"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SAILING OVERLAY -->
+<div id="sailing-overlay">
+  <div class="sailing-content">
+    <div class="sailing-ship">🚢</div>
+    <div class="sailing-text" id="sailingText"></div>
+    <div class="sailing-days" id="sailingDays"></div>
+    <div class="sailing-dots"><div class="sailing-dot"></div><div class="sailing-dot"></div><div class="sailing-dot"></div></div>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal" id="eventModalInner"></div>
+</div>
+
+<!-- PORT SCREEN -->
+<div id="port-screen">
+  <div class="port-header" id="portHeader"></div>
+  <div class="port-body" id="portBody"></div>
+  <div class="port-footer" id="portFooter"></div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="result-screen">
+  <div class="result-content" id="resultContent"></div>
+</div>
+
+</div>
+
+<script>
+const T = {
+  ja: {
+    titleMain: '鄭和の大航海',
+    titleSub: 'Zheng He\'s Treasure Fleet',
+    titleDesc: '永楽帝の命を受け、62隻・27,800人の宝船艦隊が南京を出航する。南シナ海からインド洋を越え、7つの港で交易と外交を成し遂げよ。',
+    startBtn: '出航する',
+    gold: '金', rice: '米', water: '水', ships: '船', morale: '士気',
+    day: '日目',
+    sailTo: 'へ出航',
+    sailing: '航海中…',
+    daysTravel: '日間の航海',
+    arrive: '到着',
+    enterPort: '入港する',
+    trade: '交易所',
+    buy: '買', sell: '売',
+    owned: '所持',
+    diplomacy: '外交',
+    diploDesc: '現地の王に貴重な贈り物を献上し、友好関係を築きましょう。',
+    giveGift: '贈り物を献上（200金）',
+    giftGiven: '✨ 外交関係を樹立！',
+    alreadyGifted: '既に友好関係を結んでいます',
+    notEnoughGold: '金が足りません',
+    history: '歴史メモ',
+    continueJourney: '航海を続ける',
+    returnHome: '南京へ帰還する',
+    resultTitle: '航海完了！',
+    resultSub: '宝船艦隊は南京に帰還した',
+    tradeProfit: '交易利益',
+    diploPoints: '外交成果',
+    fleetBonus: '艦隊保全',
+    moraleBonus: '士気ボーナス',
+    timeBonus: '速度ボーナス',
+    totalScore: '総合スコア',
+    playAgain: 'もう一度遊ぶ',
+    rank1: '🏆 大航海王 — 鄭和を超える偉業！',
+    rank2: '🥇 名提督 — 永楽帝も満足の航海',
+    rank3: '🥈 熟練水夫 — 立派な航海だった',
+    rank4: '🥉 見習い船長 — まだまだ修行が必要',
+    rank5: '⚓ 難破寸前 — 次はもっと慎重に…',
+    resultFact: '史実：鄭和は1405年から1433年にかけて計7回の大航海を行い、東南アジア・インド・アラビア・東アフリカを歴訪した。旗艦「宝船」は全長約120m、当時世界最大の木造船だった。この大航海は、コロンブスの航海（1492年）より87年も前のことである。',
+    eventStorm: '暴風雨',
+    eventStormDesc: '巨大な嵐が艦隊を襲う！どう対処する？',
+    eventStormA: '嵐を突破する',
+    eventStormADesc: '時間は節約できるが、損害を受ける可能性',
+    eventStormB: '嵐を迂回する',
+    eventStormBDesc: '安全だが日数がかかる',
+    eventPirate: '海賊',
+    eventPirateDesc: '海賊船が接近してきた！',
+    eventPirateA: '戦闘で撃退する',
+    eventPirateADesc: '船を失うリスクがあるが、戦利品を得られるかも',
+    eventPirateB: '金を払って通過する',
+    eventPirateBDesc: '金を失うが安全に通過できる',
+    eventWind: '順風',
+    eventWindDesc: '追い風が吹き、艦隊は快調に進む。乗組員の士気も上がった！',
+    eventSick: '疫病',
+    eventSickDesc: '乗組員の間で病が広がっている…',
+    eventSickA: '米と水で手厚く看病する',
+    eventSickADesc: '物資を消費するが、士気を保てる',
+    eventSickB: '隔離して航海を続ける',
+    eventSickBDesc: '物資は温存できるが、士気が下がる',
+    eventDiscovery: '珍しい生物',
+    eventDiscoveryDesc: '海上で珍しい生き物を発見！乗組員たちは大興奮だ。',
+    eventCalm: '凪',
+    eventCalmDesc: '風が完全に止んでしまった。艦隊は動けない…',
+    eventCalmA: '漕ぎ手を出して進む',
+    eventCalmADesc: '物資を消費するが前進できる',
+    eventCalmB: '風を待つ',
+    eventCalmBDesc: '日数がかかるが物資を温存できる',
+    eventWhale: '鯨の群れ',
+    eventWhaleDesc: '巨大な鯨の群れに遭遇！壮大な光景に乗組員たちは歓声を上げた。',
+    eventCurrent: '海流',
+    eventCurrentDesc: '強い海流に遭遇。利用するか避けるか？',
+    eventCurrentA: '海流に乗る',
+    eventCurrentADesc: '速くなるが制御が難しい',
+    eventCurrentB: '安全に迂回する',
+    eventCurrentBDesc: '時間はかかるが安全',
+    noRice: '⚠️ 米が尽きた！士気が大幅に低下…',
+    noWater: '⚠️ 水が尽きた！士気が大幅に低下…',
+    gameOver: '航海失敗…',
+    gameOverDesc: '士気が0になり、乗組員が反乱を起こした。',
+    restartBtn: '最初からやり直す',
+    resupply: '補給',
+    buyRice: '米を補給（10金→10米）',
+    buyWater: '水を補給（8金→10水）',
+    repairShips: '船を修理（50金→5船）',
+  },
+  en: {
+    titleMain: 'Zheng He\'s Treasure Fleet',
+    titleSub: '鄭和の大航海',
+    titleDesc: 'By order of the Yongle Emperor, command a fleet of 62 ships and 27,800 crew from Nanjing. Trade, navigate, and forge diplomatic ties across seven ports from the South China Sea to the Indian Ocean.',
+    startBtn: 'Set Sail',
+    gold: 'Gold', rice: 'Rice', water: 'Water', ships: 'Ships', morale: 'Morale',
+    day: 'Day',
+    sailTo: 'Sail to ',
+    sailing: 'Sailing…',
+    daysTravel: ' days at sea',
+    arrive: 'Arrived',
+    enterPort: 'Enter Port',
+    trade: 'Trading Post',
+    buy: 'Buy', sell: 'Sell',
+    owned: 'Have',
+    diplomacy: 'Diplomacy',
+    diploDesc: 'Present precious gifts to the local ruler to establish friendly relations.',
+    giveGift: 'Present Gifts (200 Gold)',
+    giftGiven: '✨ Diplomatic ties established!',
+    alreadyGifted: 'Already allied with this port',
+    notEnoughGold: 'Not enough gold',
+    history: 'Historical Note',
+    continueJourney: 'Continue Voyage',
+    returnHome: 'Return to Nanjing',
+    resultTitle: 'Voyage Complete!',
+    resultSub: 'The Treasure Fleet has returned to Nanjing',
+    tradeProfit: 'Trade Profit',
+    diploPoints: 'Diplomacy',
+    fleetBonus: 'Fleet Preserved',
+    moraleBonus: 'Morale Bonus',
+    timeBonus: 'Speed Bonus',
+    totalScore: 'Total Score',
+    playAgain: 'Play Again',
+    rank1: '🏆 Grand Admiral — Greater than Zheng He himself!',
+    rank2: '🥇 Master Navigator — The Emperor is pleased',
+    rank3: '🥈 Seasoned Sailor — A respectable voyage',
+    rank4: '🥉 Apprentice Captain — More training needed',
+    rank5: '⚓ Nearly Shipwrecked — Be more careful next time…',
+    resultFact: 'Historical fact: Zheng He made seven great voyages between 1405 and 1433, visiting Southeast Asia, India, Arabia, and East Africa. His flagship "treasure ship" was about 120m long — the largest wooden vessel ever built. These voyages preceded Columbus\'s journey (1492) by 87 years.',
+    eventStorm: 'Storm',
+    eventStormDesc: 'A massive storm is bearing down on the fleet! What do you do?',
+    eventStormA: 'Push through the storm',
+    eventStormADesc: 'Save time but risk damage',
+    eventStormB: 'Detour around it',
+    eventStormBDesc: 'Safe but costs extra days',
+    eventPirate: 'Pirates',
+    eventPirateDesc: 'Pirate ships are approaching!',
+    eventPirateA: 'Fight them off',
+    eventPirateADesc: 'Risk losing ships, but may gain loot',
+    eventPirateB: 'Pay tribute to pass',
+    eventPirateBDesc: 'Lose gold but pass safely',
+    eventWind: 'Fair Winds',
+    eventWindDesc: 'A favorable tailwind fills the sails. The crew is in high spirits!',
+    eventSick: 'Plague',
+    eventSickDesc: 'Disease is spreading among the crew…',
+    eventSickA: 'Use supplies to treat the sick',
+    eventSickADesc: 'Costs rice and water, but preserves morale',
+    eventSickB: 'Quarantine and sail on',
+    eventSickBDesc: 'Saves supplies but morale drops',
+    eventDiscovery: 'Rare Creature',
+    eventDiscoveryDesc: 'A wondrous sea creature has been spotted! The crew is amazed.',
+    eventCalm: 'Doldrums',
+    eventCalmDesc: 'The wind has completely died. The fleet is becalmed…',
+    eventCalmA: 'Row forward',
+    eventCalmADesc: 'Uses supplies but makes progress',
+    eventCalmB: 'Wait for wind',
+    eventCalmBDesc: 'Takes time but saves supplies',
+    eventWhale: 'Whale Pod',
+    eventWhaleDesc: 'A pod of giant whales surfaces! The crew cheers at the magnificent sight.',
+    eventCurrent: 'Ocean Current',
+    eventCurrentDesc: 'A strong ocean current crosses your path. Ride it or avoid it?',
+    eventCurrentA: 'Ride the current',
+    eventCurrentADesc: 'Faster but harder to control',
+    eventCurrentB: 'Detour safely',
+    eventCurrentBDesc: 'Takes time but safe',
+    noRice: '⚠️ Rice depleted! Morale drops sharply…',
+    noWater: '⚠️ Water depleted! Morale drops sharply…',
+    gameOver: 'Voyage Failed…',
+    gameOverDesc: 'Morale reached zero and the crew mutinied.',
+    restartBtn: 'Start Over',
+    resupply: 'Resupply',
+    buyRice: 'Buy Rice (10 Gold → 10 Rice)',
+    buyWater: 'Buy Water (8 Gold → 10 Water)',
+    repairShips: 'Repair Ships (50 Gold → 5 Ships)',
+  }
+};
+
+const GOODS = {
+  silk:      { emoji:'🧵', ja:'絹',   en:'Silk' },
+  porcelain: { emoji:'🏺', ja:'磁器', en:'Porcelain' },
+  tea:       { emoji:'🍵', ja:'茶',   en:'Tea' },
+  pepper:    { emoji:'🌶️', ja:'胡椒', en:'Pepper' },
+  cinnamon:  { emoji:'🪵', ja:'肉桂', en:'Cinnamon' },
+  gems:      { emoji:'💎', ja:'宝石', en:'Gems' },
+  aloewood:  { emoji:'🪔', ja:'沈香', en:'Aloewood' },
+  spice:     { emoji:'🫚', ja:'香辛料',en:'Spices' }
+};
+
+const PORTS = [
+  {
+    id:'nanjing', emoji:'🏯',
+    name:{ja:'南京',en:'Nanjing'},
+    sub:{ja:'明帝国の首都・出航地',en:'Capital of the Ming Empire — Departure'},
+    coord:{x:.82,y:.22},
+    goods:{silk:{b:10},porcelain:{b:15},tea:{b:5},pepper:{s:50},cinnamon:{s:45},gems:{s:80},aloewood:{s:55},spice:{s:40}},
+    fact:{
+      ja:'1405年7月11日、永楽帝の勅命により鄭和は南京の龍江造船所から出航した。鄭和はイスラム教徒の宦官で、本名は馬和。雲南出身で、幼少期に明軍に捕えられ宮廷に仕えた。永楽帝の信任厚く、この壮大な航海の総指揮官に任命された。',
+      en:'On July 11, 1405, Zheng He departed from Nanjing\'s Longjiang Shipyard by imperial decree. Born Ma He in Yunnan, he was a Muslim eunuch who had served the Yongle Emperor since childhood. Trusted deeply by the Emperor, he was appointed Grand Commander of this unprecedented maritime expedition.'
+    },
+    days:0
+  },
+  {
+    id:'champa', emoji:'🌴',
+    name:{ja:'占城（チャンパ）',en:'Champa'},
+    sub:{ja:'現ベトナム中部・ヒンドゥー王国',en:'Central Vietnam — Hindu Kingdom'},
+    coord:{x:.72,y:.48},
+    goods:{silk:{s:28},porcelain:{s:35},tea:{s:18},aloewood:{b:8},pepper:{b:15}},
+    fact:{
+      ja:'占城（チャンパ王国）は2世紀から17世紀まで現在のベトナム中南部に栄えたヒンドゥー教・海洋交易国家。世界最高品質の沈香（じんこう）の産地として知られ、その香木は中国宮廷で珍重された。鄭和の艦隊は占城を最初の寄港地とし、季節風（モンスーン）の変わり目を待った。',
+      en:'Champa was a Hindu maritime kingdom (2nd-17th century) in present-day central Vietnam. Famous for producing the world\'s finest aloewood (agarwood), prized in Chinese courts. Zheng He\'s fleet stopped here first, waiting for the monsoon winds to shift favorably.'
+    },
+    days:14
+  },
+  {
+    id:'java', emoji:'🌋',
+    name:{ja:'爪哇（ジャワ）',en:'Java'},
+    sub:{ja:'マジャパヒト王国・香料の島',en:'Majapahit Kingdom — Spice Islands'},
+    coord:{x:.72,y:.72},
+    goods:{spice:{b:6},gems:{b:18},silk:{s:32},porcelain:{s:40},tea:{s:22}},
+    fact:{
+      ja:'15世紀初頭のジャワ島はマジャパヒト王国が支配していた。東南アジア最大の帝国で、香辛料貿易の中心地。ナツメグ、クローブ、コショウなどの香辛料はヨーロッパでは金と同じ重さで取引されるほど貴重だった。鄭和はここでマジャパヒト王と会見し、朝貢関係の維持を求めた。',
+      en:'Early 15th-century Java was ruled by the Majapahit Empire, Southeast Asia\'s largest kingdom and the spice trade hub. Nutmeg, cloves, and pepper were so valuable they were traded weight-for-weight with gold in Europe. Zheng He met the Majapahit ruler here, seeking to maintain tributary relations.'
+    },
+    days:10
+  },
+  {
+    id:'palembang', emoji:'⚔️',
+    name:{ja:'三仏斉（パレンバン）',en:'Palembang'},
+    sub:{ja:'スマトラ島・海賊の巣窟',en:'Sumatra — Pirate Haven'},
+    coord:{x:.62,y:.64},
+    goods:{pepper:{b:10},aloewood:{b:10},spice:{b:8},silk:{s:26},tea:{s:16}},
+    fact:{
+      ja:'パレンバンはかつてのシュリーヴィジャヤ王国の首都。15世紀初頭には華人海賊の陳祖義（ちんそぎ）が数千の手下を従え、マラッカ海峡を支配していた。鄭和は第1回航海でこの陳祖義を捕縛し、5000人以上の海賊を討伐。この戦果により南シナ海の海上交通路が安全になった。',
+      en:'Palembang, former capital of the Srivijaya Empire, was controlled by the Chinese pirate Chen Zuyi and his thousands of followers in the early 1400s. On his first voyage, Zheng He captured Chen Zuyi and defeated over 5,000 pirates, securing the vital sea lanes of the South China Sea and Malacca Strait.'
+    },
+    days:7
+  },
+  {
+    id:'malacca', emoji:'🏪',
+    name:{ja:'マラッカ',en:'Malacca'},
+    sub:{ja:'海峡の交易都市・東西交易の要',en:'Strait Gateway — East-West Trade Hub'},
+    coord:{x:.60,y:.56},
+    goods:{pepper:{b:8},spice:{b:7},gems:{b:22},silk:{s:30},porcelain:{s:38},tea:{s:20},cinnamon:{s:35}},
+    fact:{
+      ja:'マラッカ海峡は太平洋とインド洋を結ぶ海上交通の要衝。パラメーシュヴァラ王が建国したばかりのマラッカ王国は、鄭和の支援を受けて急速に成長し、東南アジア最大の交易港となった。中国・インド・アラブ・ジャワの商人が集まり、400種以上の言語が飛び交ったという。',
+      en:'The Malacca Strait connects the Pacific and Indian Oceans. The newly founded Malacca Sultanate, under King Parameswara, grew rapidly with Zheng He\'s support to become Southeast Asia\'s greatest trading port. Merchants from China, India, Arabia, and Java gathered here, with over 400 languages reportedly spoken.'
+    },
+    days:5
+  },
+  {
+    id:'ceylon', emoji:'🪷',
+    name:{ja:'錫蘭（セイロン）',en:'Ceylon'},
+    sub:{ja:'現スリランカ・宝石と仏教の島',en:'Sri Lanka — Island of Gems and Buddhism'},
+    coord:{x:.42,y:.55},
+    goods:{gems:{b:12},cinnamon:{b:6},silk:{s:35},porcelain:{s:45},tea:{s:25},pepper:{s:30}},
+    fact:{
+      ja:'セイロン島（現スリランカ）は「宝石の島」と呼ばれ、サファイア・ルビー・トパーズの産地として古くから知られていた。また世界最高品質のシナモン（肉桂）の原産地でもある。鄭和は第3回航海（1409年）でセイロンのアラカシュヴァラ王と衝突し、王を捕虜として南京に連行した。',
+      en:'Ceylon (Sri Lanka) was known as the "Island of Gems," famous for sapphires, rubies, and topaz since antiquity. It was also the origin of the world\'s finest cinnamon. On his third voyage (1409), Zheng He clashed with King Alakeshvara of Ceylon and brought him to Nanjing as a captive.'
+    },
+    days:12
+  },
+  {
+    id:'calicut', emoji:'🕌',
+    name:{ja:'古里（カリカット）',en:'Calicut'},
+    sub:{ja:'インド南西部・胡椒の都',en:'Southwest India — Pepper Capital'},
+    coord:{x:.38,y:.50},
+    goods:{pepper:{b:4},cinnamon:{b:7},gems:{b:15},spice:{b:5},silk:{s:40},porcelain:{s:50},tea:{s:30},aloewood:{s:42}},
+    fact:{
+      ja:'カリカット（現コーリコード）はインド南西部ケーララ地方の交易都市で、「胡椒の都」と呼ばれた。ザモリン（海の王）が統治し、アラブ・ペルシャ・中国の商人が集まる国際的な港だった。鄭和の第1回航海の最終目的地であり、ここでインド洋交易の中心と直接つながった。87年後、ヴァスコ・ダ・ガマも同じカリカットを目指した。',
+      en:'Calicut (modern Kozhikode) in Kerala was called the "Pepper Capital" and ruled by the Zamorin (Sea King). An international port drawing Arab, Persian, and Chinese merchants, it was Zheng He\'s first voyage destination, connecting China directly to Indian Ocean trade. 87 years later, Vasco da Gama sought this same port.'
+    },
+    days:8
+  }
+];
+
+let lang = 'ja';
+let state = {};
+
+function t(key) { return T[lang][key] || T.ja[key] || key; }
+function gn(key) { return GOODS[key] ? (GOODS[key][lang] || GOODS[key].ja) : key; }
+function ge(key) { return GOODS[key] ? GOODS[key].emoji : '📦'; }
+
+function toggleLang() {
+  lang = lang === 'ja' ? 'en' : 'ja';
+  document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JP';
+  document.getElementById('titleMain').textContent = t('titleMain');
+  document.getElementById('titleSub').textContent = t('titleSub');
+  document.getElementById('titleDesc').textContent = t('titleDesc');
+  document.getElementById('startBtn').textContent = t('startBtn');
+  if (state.phase) renderMap();
+}
+
+function initState() {
+  state = {
+    phase: 'map',
+    currentPort: 0,
+    visitedPorts: [0],
+    nextPort: 1,
+    gold: 1000,
+    rice: 100,
+    water: 100,
+    ships: 62,
+    morale: 100,
+    cargo: { silk:20, porcelain:15, tea:30, pepper:0, cinnamon:0, gems:0, aloewood:0, spice:0 },
+    diplomacy: [],
+    daysElapsed: 0,
+    startGold: 1000,
+    eventsHad: []
+  };
+}
+
+function show(id) {
+  ['title-screen','map-screen','port-screen','result-screen'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = s === id ? 'flex' : 'none';
+  });
+}
+
+function startGame() {
+  initState();
+  show('map-screen');
+  drawMap();
+  renderMap();
+}
+
+/* ===== CANVAS MAP ===== */
+let mapCanvas, mapCtx, mapW, mapH;
+let waveOffset = 0;
+let mapAnimId;
+
+function drawMap() {
+  mapCanvas = document.getElementById('map-canvas');
+  const container = document.getElementById('mapContainer');
+  mapW = container.clientWidth;
+  mapH = container.clientHeight;
+  mapCanvas.width = mapW * 2;
+  mapCanvas.height = mapH * 2;
+  mapCanvas.style.width = mapW + 'px';
+  mapCanvas.style.height = mapH + 'px';
+  mapCtx = mapCanvas.getContext('2d');
+  mapCtx.scale(2, 2);
+  if (mapAnimId) clearInterval(mapAnimId);
+  mapAnimId = setInterval(animateMap, 80);
+}
+
+function animateMap() {
+  if (!mapCtx) return;
+  const ctx = mapCtx;
+  waveOffset += 0.03;
+  ctx.clearRect(0, 0, mapW, mapH);
+
+  // Ocean gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, mapH);
+  grad.addColorStop(0, '#0b2545');
+  grad.addColorStop(0.5, '#13395a');
+  grad.addColorStop(1, '#1b4d72');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, mapW, mapH);
+
+  // Wave lines
+  for (let i = 0; i < 12; i++) {
+    ctx.beginPath();
+    ctx.strokeStyle = `rgba(45,212,191,${0.03 + i * 0.005})`;
+    ctx.lineWidth = 1;
+    const yBase = mapH * 0.1 + i * (mapH * 0.08);
+    for (let x = 0; x < mapW; x += 4) {
+      const y = yBase + Math.sin((x * 0.01) + waveOffset + i * 0.5) * 8;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Landmasses (simplified shapes)
+  ctx.fillStyle = '#2a4a3a';
+  ctx.strokeStyle = 'rgba(212,168,83,0.15)';
+  ctx.lineWidth = 1;
+
+  // China
+  ctx.beginPath();
+  ctx.moveTo(mapW*.70, 0);
+  ctx.lineTo(mapW*1, 0);
+  ctx.lineTo(mapW*1, mapH*.35);
+  ctx.lineTo(mapW*.88, mapH*.30);
+  ctx.lineTo(mapW*.82, mapH*.35);
+  ctx.lineTo(mapW*.78, mapH*.32);
+  ctx.lineTo(mapW*.74, mapH*.38);
+  ctx.lineTo(mapW*.70, mapH*.42);
+  ctx.lineTo(mapW*.68, mapH*.36);
+  ctx.lineTo(mapW*.66, mapH*.25);
+  ctx.lineTo(mapW*.68, mapH*.15);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Indochina
+  ctx.beginPath();
+  ctx.moveTo(mapW*.66, mapH*.25);
+  ctx.lineTo(mapW*.70, mapH*.42);
+  ctx.lineTo(mapW*.72, mapH*.50);
+  ctx.lineTo(mapW*.70, mapH*.58);
+  ctx.lineTo(mapW*.68, mapH*.52);
+  ctx.lineTo(mapW*.64, mapH*.45);
+  ctx.lineTo(mapW*.60, mapH*.38);
+  ctx.lineTo(mapW*.58, mapH*.28);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Malay Peninsula
+  ctx.beginPath();
+  ctx.moveTo(mapW*.64, mapH*.45);
+  ctx.lineTo(mapW*.62, mapH*.55);
+  ctx.lineTo(mapW*.60, mapH*.62);
+  ctx.lineTo(mapW*.58, mapH*.58);
+  ctx.lineTo(mapW*.60, mapH*.48);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Sumatra
+  ctx.beginPath();
+  ctx.moveTo(mapW*.55, mapH*.58);
+  ctx.lineTo(mapW*.62, mapH*.62);
+  ctx.lineTo(mapW*.65, mapH*.70);
+  ctx.lineTo(mapW*.58, mapH*.75);
+  ctx.lineTo(mapW*.52, mapH*.65);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Java
+  ctx.beginPath();
+  ctx.moveTo(mapW*.64, mapH*.72);
+  ctx.lineTo(mapW*.78, mapH*.76);
+  ctx.lineTo(mapW*.80, mapH*.78);
+  ctx.lineTo(mapW*.66, mapH*.77);
+  ctx.lineTo(mapW*.63, mapH*.74);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Borneo
+  ctx.beginPath();
+  ctx.moveTo(mapW*.72, mapH*.50);
+  ctx.lineTo(mapW*.80, mapH*.52);
+  ctx.lineTo(mapW*.82, mapH*.60);
+  ctx.lineTo(mapW*.78, mapH*.66);
+  ctx.lineTo(mapW*.72, mapH*.62);
+  ctx.lineTo(mapW*.70, mapH*.55);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // India
+  ctx.beginPath();
+  ctx.moveTo(mapW*.30, 0);
+  ctx.lineTo(mapW*.50, 0);
+  ctx.lineTo(mapW*.50, mapH*.20);
+  ctx.lineTo(mapW*.48, mapH*.30);
+  ctx.lineTo(mapW*.44, mapH*.42);
+  ctx.lineTo(mapW*.40, mapH*.55);
+  ctx.lineTo(mapW*.38, mapH*.60);
+  ctx.lineTo(mapW*.36, mapH*.55);
+  ctx.lineTo(mapW*.34, mapH*.42);
+  ctx.lineTo(mapW*.30, mapH*.30);
+  ctx.lineTo(mapW*.26, mapH*.20);
+  ctx.lineTo(mapW*.28, mapH*.10);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Sri Lanka
+  ctx.beginPath();
+  ctx.ellipse(mapW*.40, mapH*.58, mapW*.025, mapH*.04, 0.2, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  // Arabia/Africa (left edge)
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(mapW*.22, 0);
+  ctx.lineTo(mapW*.20, mapH*.15);
+  ctx.lineTo(mapW*.22, mapH*.30);
+  ctx.lineTo(mapW*.18, mapH*.40);
+  ctx.lineTo(mapW*.12, mapH*.50);
+  ctx.lineTo(mapW*.08, mapH*.65);
+  ctx.lineTo(0, mapH*.70);
+  ctx.lineTo(0, 0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Route lines
+  ctx.setLineDash([4, 6]);
+  ctx.strokeStyle = 'rgba(212,168,83,0.25)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < PORTS.length; i++) {
+    const p = PORTS[i];
+    const px = p.coord.x * mapW, py = p.coord.y * mapH;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Visited route (solid gold)
+  if (state.visitedPorts && state.visitedPorts.length > 1) {
+    ctx.strokeStyle = 'rgba(212,168,83,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < state.visitedPorts.length; i++) {
+      const p = PORTS[state.visitedPorts[i]];
+      const px = p.coord.x * mapW, py = p.coord.y * mapH;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  // Port dots on canvas (backup for tiny screens)
+  PORTS.forEach((p, i) => {
+    const px = p.coord.x * mapW, py = p.coord.y * mapH;
+    ctx.beginPath();
+    const isVisited = state.visitedPorts && state.visitedPorts.includes(i);
+    const isCurrent = state.currentPort === i;
+    const r = isCurrent ? 5 : 3.5;
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = isCurrent ? '#f0d68a' : isVisited ? '#2dd4bf' : 'rgba(212,168,83,0.4)';
+    ctx.fill();
+    if (isCurrent) {
+      ctx.beginPath();
+      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(240,214,138,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  });
+}
+
+function renderMap() {
+  // Resources
+  const rb = document.getElementById('resourceBar');
+  rb.innerHTML = `
+    <div class="res-item"><span class="res-icon">🪙</span><span class="res-val">${state.gold}</span><span class="res-label">${t('gold')}</span></div>
+    <div class="res-item"><span class="res-icon">🍚</span><span class="res-val">${state.rice}</span><span class="res-label">${t('rice')}</span></div>
+    <div class="res-item"><span class="res-icon">💧</span><span class="res-val">${state.water}</span><span class="res-label">${t('water')}</span></div>
+    <div class="res-item"><span class="res-icon">⛵</span><span class="res-val">${state.ships}</span><span class="res-label">${t('ships')}</span></div>
+    <div class="res-item"><span class="res-icon">💪</span><span class="res-val">${state.morale}%</span><span class="res-label">${t('morale')}</span></div>
+  `;
+
+  // Ship position
+  const cp = PORTS[state.currentPort];
+  const ship = document.getElementById('shipIcon');
+  ship.style.left = (cp.coord.x * 100) + '%';
+  ship.style.top = (cp.coord.y * 100 - 5) + '%';
+
+  // Day & port info
+  document.getElementById('mapDay').textContent = `${state.daysElapsed} ${t('day')}`;
+  document.getElementById('mapPortName').textContent = cp.name[lang] || cp.name.ja;
+
+  const sub = cp.sub[lang] || cp.sub.ja;
+  document.getElementById('mapPortDesc').textContent = sub;
+
+  // Buttons
+  const btns = document.getElementById('mapButtons');
+  btns.innerHTML = '';
+
+  if (state.currentPort === 0 && state.visitedPorts.length > 1) {
+    // Back at Nanjing after voyage - show results
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = lang === 'ja' ? '航海記録を見る' : 'View Voyage Log';
+    b.onclick = showResults;
+    btns.appendChild(b);
+  }
+
+  // Enter port button
+  const enterBtn = document.createElement('button');
+  enterBtn.className = 'btn btn-teal btn-small';
+  enterBtn.textContent = t('enterPort');
+  enterBtn.onclick = () => enterPort(state.currentPort);
+  btns.appendChild(enterBtn);
+
+  // Sail to next port
+  if (state.nextPort < PORTS.length) {
+    const np = PORTS[state.nextPort];
+    const sailBtn = document.createElement('button');
+    sailBtn.className = 'btn btn-small';
+    sailBtn.textContent = (np.name[lang] || np.name.ja) + t('sailTo');
+    sailBtn.onclick = () => sailTo(state.nextPort);
+    btns.appendChild(sailBtn);
+  } else if (state.currentPort !== 0) {
+    const retBtn = document.createElement('button');
+    retBtn.className = 'btn btn-small';
+    retBtn.textContent = t('returnHome');
+    retBtn.onclick = () => sailTo(0, true);
+    btns.appendChild(retBtn);
+  }
+}
+
+/* ===== SAILING ===== */
+function sailTo(portIdx, isReturn) {
+  const fromPort = PORTS[state.currentPort];
+  const toPort = PORTS[portIdx];
+  const days = isReturn ? 30 : toPort.days;
+
+  // Consume resources
+  const riceUse = Math.floor(days * 1.2);
+  const waterUse = Math.floor(days * 1.0);
+  state.rice = Math.max(0, state.rice - riceUse);
+  state.water = Math.max(0, state.water - waterUse);
+  state.daysElapsed += days;
+
+  // Check resource depletion
+  let depletionMsg = '';
+  if (state.rice <= 0) { state.morale = Math.max(0, state.morale - 20); depletionMsg += t('noRice') + '\n'; }
+  if (state.water <= 0) { state.morale = Math.max(0, state.morale - 25); depletionMsg += t('noWater') + '\n'; }
+
+  // Show sailing animation
+  const overlay = document.getElementById('sailing-overlay');
+  overlay.classList.add('active');
+  document.getElementById('sailingText').textContent =
+    `→ ${toPort.name[lang] || toPort.name.ja} ${t('sailing')}`;
+  document.getElementById('sailingDays').textContent = days + t('daysTravel');
+
+  setTimeout(() => {
+    overlay.classList.remove('active');
+
+    // Check morale (game over)
+    if (state.morale <= 0) {
+      showGameOver();
+      return;
+    }
+
+    // Show depletion warning
+    if (depletionMsg) {
+      showSimpleModal('⚠️', lang === 'ja' ? '補給警告' : 'Supply Warning', depletionMsg, () => {
+        triggerSeaEvent(portIdx, isReturn);
+      });
+      return;
+    }
+
+    triggerSeaEvent(portIdx, isReturn);
+  }, 2000);
+}
+
+function triggerSeaEvent(portIdx, isReturn) {
+  const events = ['storm','pirate','wind','sick','discovery','calm','whale','current'];
+  const weights = [15, 12, 18, 10, 12, 10, 10, 13];
+  const roll = Math.random() * 100;
+  let cum = 0, picked = 'wind';
+  for (let i = 0; i < events.length; i++) {
+    cum += weights[i];
+    if (roll < cum) { picked = events[i]; break; }
+  }
+
+  const noChoice = ['wind','discovery','whale'];
+  if (noChoice.includes(picked)) {
+    applyAutoEvent(picked, portIdx, isReturn);
+  } else {
+    showEventChoice(picked, portIdx, isReturn);
+  }
+}
+
+function applyAutoEvent(type, portIdx, isReturn) {
+  let title, desc, emoji, resultClass;
+  if (type === 'wind') {
+    emoji = '💨'; title = t('eventWind'); desc = t('eventWindDesc');
+    state.morale = Math.min(100, state.morale + 8);
+    state.daysElapsed = Math.max(0, state.daysElapsed - 2);
+    resultClass = 'good';
+  } else if (type === 'discovery') {
+    emoji = '🐉'; title = t('eventDiscovery'); desc = t('eventDiscoveryDesc');
+    state.morale = Math.min(100, state.morale + 10);
+    resultClass = 'good';
+  } else if (type === 'whale') {
+    emoji = '🐋'; title = t('eventWhale'); desc = t('eventWhaleDesc');
+    state.morale = Math.min(100, state.morale + 6);
+    resultClass = 'good';
+  }
+
+  const modal = document.getElementById('eventModal');
+  const inner = document.getElementById('eventModalInner');
+  inner.innerHTML = `
+    <div class="modal-emoji">${emoji}</div>
+    <div class="modal-title">${title}</div>
+    <div class="modal-text">${desc}</div>
+    <div class="modal-result ${resultClass}">${
+      lang === 'ja' ? '士気 +' + (type === 'discovery' ? 10 : type === 'whale' ? 6 : 8)
+        : 'Morale +' + (type === 'discovery' ? 10 : type === 'whale' ? 6 : 8)
+    }</div>
+    <div style="text-align:center">
+      <button class="btn btn-small" id="eventOkBtn">${lang === 'ja' ? '続ける' : 'Continue'}</button>
+    </div>
+  `;
+  modal.classList.add('active');
+  document.getElementById('eventOkBtn').onclick = () => {
+    modal.classList.remove('active');
+    arriveAtPort(portIdx, isReturn);
+  };
+}
+
+function showEventChoice(type, portIdx, isReturn) {
+  const emoji = {storm:'🌊',pirate:'🏴‍☠️',sick:'🤒',calm:'🌀',current:'🌊'}[type];
+  const modal = document.getElementById('eventModal');
+  const inner = document.getElementById('eventModalInner');
+
+  inner.innerHTML = `
+    <div class="modal-emoji">${emoji}</div>
+    <div class="modal-title">${t('event' + cap(type))}</div>
+    <div class="modal-text">${t('event' + cap(type) + 'Desc')}</div>
+    <div class="modal-choices">
+      <div class="modal-choice" id="choiceA">
+        <div class="modal-choice-label">${t('event' + cap(type) + 'A')}</div>
+        <div class="modal-choice-desc">${t('event' + cap(type) + 'ADesc')}</div>
+      </div>
+      <div class="modal-choice" id="choiceB">
+        <div class="modal-choice-label">${t('event' + cap(type) + 'B')}</div>
+        <div class="modal-choice-desc">${t('event' + cap(type) + 'BDesc')}</div>
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
+
+  document.getElementById('choiceA').onclick = () => {
+    modal.classList.remove('active');
+    resolveEvent(type, 'A', portIdx, isReturn);
+  };
+  document.getElementById('choiceB').onclick = () => {
+    modal.classList.remove('active');
+    resolveEvent(type, 'B', portIdx, isReturn);
+  };
+}
+
+function resolveEvent(type, choice, portIdx, isReturn) {
+  let resultText = '', resultClass = 'neutral';
+  const luck = Math.random();
+
+  if (type === 'storm') {
+    if (choice === 'A') {
+      if (luck > 0.4) {
+        const lost = Math.floor(Math.random() * 3) + 1;
+        state.ships = Math.max(1, state.ships - lost);
+        state.morale = Math.max(0, state.morale - 8);
+        resultText = lang === 'ja' ? `嵐を突破！しかし${lost}隻を失った。士気-8` : `Pushed through! But lost ${lost} ships. Morale -8`;
+        resultClass = 'bad';
+      } else {
+        state.morale = Math.min(100, state.morale + 5);
+        resultText = lang === 'ja' ? '見事に嵐を突破！士気+5' : 'Brilliantly navigated the storm! Morale +5';
+        resultClass = 'good';
+      }
+    } else {
+      state.daysElapsed += 3;
+      state.rice = Math.max(0, state.rice - 5);
+      state.water = Math.max(0, state.water - 4);
+      resultText = lang === 'ja' ? '安全に迂回した。+3日、米-5、水-4' : 'Safely detoured. +3 days, Rice -5, Water -4';
+      resultClass = 'neutral';
+    }
+  } else if (type === 'pirate') {
+    if (choice === 'A') {
+      if (luck > 0.35) {
+        const loot = Math.floor(Math.random() * 100) + 50;
+        state.gold += loot;
+        state.morale = Math.min(100, state.morale + 5);
+        resultText = lang === 'ja' ? `海賊を撃退！戦利品 ${loot}金を獲得。士気+5` : `Pirates defeated! Looted ${loot} gold. Morale +5`;
+        resultClass = 'good';
+      } else {
+        const lost = Math.floor(Math.random() * 2) + 1;
+        state.ships = Math.max(1, state.ships - lost);
+        state.morale = Math.max(0, state.morale - 10);
+        resultText = lang === 'ja' ? `苦戦の末に撃退…${lost}隻を失った。士気-10` : `Hard fight… lost ${lost} ships. Morale -10`;
+        resultClass = 'bad';
+      }
+    } else {
+      const cost = Math.floor(Math.random() * 60) + 40;
+      state.gold = Math.max(0, state.gold - cost);
+      resultText = lang === 'ja' ? `${cost}金を支払い安全に通過した` : `Paid ${cost} gold for safe passage`;
+      resultClass = 'neutral';
+    }
+  } else if (type === 'sick') {
+    if (choice === 'A') {
+      state.rice = Math.max(0, state.rice - 15);
+      state.water = Math.max(0, state.water - 10);
+      state.morale = Math.min(100, state.morale + 5);
+      resultText = lang === 'ja' ? '手厚く看病した。米-15、水-10、士気+5' : 'Treated the sick. Rice -15, Water -10, Morale +5';
+      resultClass = 'neutral';
+    } else {
+      state.morale = Math.max(0, state.morale - 15);
+      resultText = lang === 'ja' ? '隔離して航海を続けた。士気-15' : 'Quarantined and sailed on. Morale -15';
+      resultClass = 'bad';
+    }
+  } else if (type === 'calm') {
+    if (choice === 'A') {
+      state.rice = Math.max(0, state.rice - 8);
+      state.water = Math.max(0, state.water - 8);
+      resultText = lang === 'ja' ? '漕ぎ手を出して前進。米-8、水-8' : 'Rowed forward. Rice -8, Water -8';
+      resultClass = 'neutral';
+    } else {
+      state.daysElapsed += 4;
+      state.morale = Math.max(0, state.morale - 5);
+      resultText = lang === 'ja' ? '風を待った。+4日、士気-5' : 'Waited for wind. +4 days, Morale -5';
+      resultClass = 'neutral';
+    }
+  } else if (type === 'current') {
+    if (choice === 'A') {
+      if (luck > 0.3) {
+        state.daysElapsed = Math.max(0, state.daysElapsed - 3);
+        state.morale = Math.min(100, state.morale + 5);
+        resultText = lang === 'ja' ? '海流に乗り大幅に短縮！-3日、士気+5' : 'Rode the current! -3 days, Morale +5';
+        resultClass = 'good';
+      } else {
+        const lost = 1;
+        state.ships = Math.max(1, state.ships - lost);
+        resultText = lang === 'ja' ? `制御を失い1隻が座礁…` : 'Lost control — 1 ship ran aground…';
+        resultClass = 'bad';
+      }
+    } else {
+      state.daysElapsed += 2;
+      resultText = lang === 'ja' ? '安全に迂回した。+2日' : 'Safely detoured. +2 days';
+      resultClass = 'neutral';
+    }
+  }
+
+  if (state.morale <= 0) { showGameOver(); return; }
+
+  showSimpleModal(
+    {storm:'🌊',pirate:'🏴‍☠️',sick:'🤒',calm:'🌀',current:'🌊'}[type],
+    lang === 'ja' ? '結果' : 'Result',
+    resultText,
+    () => arriveAtPort(portIdx, isReturn),
+    resultClass
+  );
+}
+
+function showSimpleModal(emoji, title, text, onClose, cls) {
+  const modal = document.getElementById('eventModal');
+  const inner = document.getElementById('eventModalInner');
+  inner.innerHTML = `
+    <div class="modal-emoji">${emoji}</div>
+    <div class="modal-title">${title}</div>
+    <div class="modal-result ${cls || 'neutral'}">${text}</div>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-small" id="simpleOkBtn">${lang === 'ja' ? '続ける' : 'Continue'}</button>
+    </div>
+  `;
+  modal.classList.add('active');
+  document.getElementById('simpleOkBtn').onclick = () => {
+    modal.classList.remove('active');
+    if (onClose) onClose();
+  };
+}
+
+function arriveAtPort(portIdx, isReturn) {
+  state.currentPort = portIdx;
+  if (!state.visitedPorts.includes(portIdx)) state.visitedPorts.push(portIdx);
+  if (!isReturn && portIdx > 0) state.nextPort = portIdx + 1;
+
+  if (isReturn && portIdx === 0) {
+    renderMap();
+    showResults();
+    return;
+  }
+
+  renderMap();
+}
+
+/* ===== PORT SCREEN ===== */
+function enterPort(portIdx) {
+  const port = PORTS[portIdx];
+  show('port-screen');
+
+  // Header
+  document.getElementById('portHeader').innerHTML = `
+    <div class="port-header-emoji">${port.emoji}</div>
+    <div class="port-header-name">${port.name[lang] || port.name.ja}</div>
+    <div class="port-header-sub">${port.sub[lang] || port.sub.ja}</div>
+  `;
+
+  renderPortBody(portIdx);
+
+  // Footer
+  document.getElementById('portFooter').innerHTML = `
+    <button class="btn btn-small" onclick="leavePort()">${t('continueJourney')}</button>
+  `;
+}
+
+function renderPortBody(portIdx) {
+  const port = PORTS[portIdx];
+  const body = document.getElementById('portBody');
+
+  // Resources summary
+  let html = `
+    <div class="resource-bar" style="border-bottom:none;background:rgba(10,22,40,.5);border-radius:10px;margin-bottom:12px">
+      <div class="res-item"><span class="res-icon">🪙</span><span class="res-val">${state.gold}</span></div>
+      <div class="res-item"><span class="res-icon">🍚</span><span class="res-val">${state.rice}</span></div>
+      <div class="res-item"><span class="res-icon">💧</span><span class="res-val">${state.water}</span></div>
+      <div class="res-item"><span class="res-icon">⛵</span><span class="res-val">${state.ships}</span></div>
+      <div class="res-item"><span class="res-icon">💪</span><span class="res-val">${state.morale}%</span></div>
+    </div>
+  `;
+
+  // Historical fact
+  html += `
+    <div class="fact-box">
+      <p><span class="fact-icon">📜</span> ${port.fact[lang] || port.fact.ja}</p>
+    </div>
+  `;
+
+  // Trade
+  html += `<div class="port-section">
+    <div class="port-section-title">🏪 ${t('trade')}</div>
+    <div class="trade-grid">`;
+
+  Object.keys(port.goods).forEach(g => {
+    const info = port.goods[g];
+    const canBuy = info.b !== undefined;
+    const canSell = info.s !== undefined;
+    const stock = state.cargo[g] || 0;
+
+    html += `<div class="trade-row">
+      <span class="trade-good-emoji">${ge(g)}</span>
+      <span class="trade-good-name">${gn(g)}</span>
+      <span class="trade-stock">${t('owned')}:${stock}</span>`;
+
+    if (canBuy) {
+      const disabled = state.gold < info.b ? 'disabled' : '';
+      html += `<span class="trade-price">${info.b}🪙</span>
+        <button class="trade-btn trade-buy" ${disabled} onclick="tradeBuy('${g}',${info.b},${portIdx})">${t('buy')}</button>`;
+    }
+    if (canSell) {
+      const disabled = stock <= 0 ? 'disabled' : '';
+      html += `<span class="trade-price">${info.s}🪙</span>
+        <button class="trade-btn trade-sell" ${disabled} onclick="tradeSell('${g}',${info.s},${portIdx})">${t('sell')}</button>`;
+    }
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+
+  // Resupply
+  html += `<div class="port-section">
+    <div class="port-section-title">📦 ${t('resupply')}</div>
+    <div class="trade-grid">
+      <div class="trade-row">
+        <span class="trade-good-emoji">🍚</span>
+        <span class="trade-good-name">${t('rice')}</span>
+        <span class="trade-stock">${t('owned')}:${state.rice}</span>
+        <button class="trade-btn trade-buy" ${state.gold < 10 ? 'disabled' : ''} onclick="buySupply('rice',10,10,${portIdx})">${t('buy')} 10</button>
+      </div>
+      <div class="trade-row">
+        <span class="trade-good-emoji">💧</span>
+        <span class="trade-good-name">${t('water')}</span>
+        <span class="trade-stock">${t('owned')}:${state.water}</span>
+        <button class="trade-btn trade-buy" ${state.gold < 8 ? 'disabled' : ''} onclick="buySupply('water',8,10,${portIdx})">${t('buy')} 10</button>
+      </div>
+      <div class="trade-row">
+        <span class="trade-good-emoji">⛵</span>
+        <span class="trade-good-name">${t('ships')}</span>
+        <span class="trade-stock">${t('owned')}:${state.ships}</span>
+        <button class="trade-btn trade-buy" ${state.gold < 50 ? 'disabled' : ''} onclick="buySupply('ships',50,5,${portIdx})">${t('buy')} 5</button>
+      </div>
+    </div>
+  </div>`;
+
+  // Diplomacy
+  const hasGifted = state.diplomacy.includes(portIdx);
+  html += `<div class="port-section">
+    <div class="port-section-title">🤝 ${t('diplomacy')}</div>
+    <div class="diplo-box">
+      <p>${t('diploDesc')}</p>
+      ${hasGifted
+        ? `<div style="color:var(--teal);font-weight:600;margin-top:8px">${t('giftGiven')}</div>`
+        : `<button class="btn btn-small btn-teal" ${state.gold < 200 ? 'disabled' : ''} onclick="giveDiploGift(${portIdx})" id="diploBtn">${t('giveGift')}</button>`
+      }
+    </div>
+  </div>`;
+
+  body.innerHTML = html;
+}
+
+function tradeBuy(good, price, portIdx) {
+  if (state.gold < price) return;
+  state.gold -= price;
+  state.cargo[good] = (state.cargo[good] || 0) + 1;
+  renderPortBody(portIdx);
+}
+
+function tradeSell(good, price, portIdx) {
+  if ((state.cargo[good] || 0) <= 0) return;
+  state.gold += price;
+  state.cargo[good]--;
+  renderPortBody(portIdx);
+}
+
+function buySupply(type, cost, amount, portIdx) {
+  if (state.gold < cost) return;
+  state.gold -= cost;
+  state[type] += amount;
+  renderPortBody(portIdx);
+}
+
+function giveDiploGift(portIdx) {
+  if (state.gold < 200) return;
+  if (state.diplomacy.includes(portIdx)) return;
+  state.gold -= 200;
+  state.diplomacy.push(portIdx);
+  state.morale = Math.min(100, state.morale + 5);
+  renderPortBody(portIdx);
+}
+
+function leavePort() {
+  show('map-screen');
+  drawMap();
+  renderMap();
+}
+
+/* ===== RESULTS ===== */
+function showResults() {
+  show('result-screen');
+  const content = document.getElementById('resultContent');
+
+  const cargoValue = Object.keys(state.cargo).reduce((sum, g) => {
+    const basePrice = {silk:10,porcelain:15,tea:5,pepper:4,cinnamon:6,gems:12,aloewood:8,spice:5};
+    return sum + (state.cargo[g] || 0) * (basePrice[g] || 5) * 2;
+  }, 0);
+  const tradeProfit = state.gold - state.startGold + cargoValue;
+  const diploScore = state.diplomacy.length * 150;
+  const fleetScore = Math.floor((state.ships / 62) * 300);
+  const moraleScore = state.morale * 3;
+  const daysPar = 90;
+  const timeScore = Math.max(0, (daysPar - state.daysElapsed) * 5);
+  const totalScore = tradeProfit + diploScore + fleetScore + moraleScore + timeScore;
+
+  let rankText;
+  if (totalScore >= 2000) rankText = t('rank1');
+  else if (totalScore >= 1200) rankText = t('rank2');
+  else if (totalScore >= 600) rankText = t('rank3');
+  else if (totalScore >= 200) rankText = t('rank4');
+  else rankText = t('rank5');
+
+  content.innerHTML = `
+    <div style="text-align:center;font-size:48px;margin-bottom:8px">🏯⛵🌊</div>
+    <div class="result-title">${t('resultTitle')}</div>
+    <div class="result-subtitle">${t('resultSub')}</div>
+    <div class="result-score-total">${totalScore}</div>
+    <div class="result-rank">${rankText}</div>
+    <div class="result-breakdown">
+      <div class="result-row"><span class="result-row-label">🪙 ${t('tradeProfit')}</span><span class="result-row-val">${tradeProfit >= 0 ? '+' : ''}${tradeProfit}</span></div>
+      <div class="result-row"><span class="result-row-label">🤝 ${t('diploPoints')}</span><span class="result-row-val">+${diploScore} (${state.diplomacy.length}/6)</span></div>
+      <div class="result-row"><span class="result-row-label">⛵ ${t('fleetBonus')}</span><span class="result-row-val">+${fleetScore} (${state.ships}/62)</span></div>
+      <div class="result-row"><span class="result-row-label">💪 ${t('moraleBonus')}</span><span class="result-row-val">+${moraleScore}</span></div>
+      <div class="result-row"><span class="result-row-label">⏱️ ${t('timeBonus')}</span><span class="result-row-val">+${timeScore} (${state.daysElapsed}${t('day')})</span></div>
+    </div>
+    <div class="result-fact">
+      <p>📜 ${t('resultFact')}</p>
+    </div>
+    <div class="result-buttons">
+      <button class="btn" onclick="location.reload()">${t('playAgain')}</button>
+    </div>
+  `;
+}
+
+function showGameOver() {
+  const modal = document.getElementById('eventModal');
+  const inner = document.getElementById('eventModalInner');
+  inner.innerHTML = `
+    <div class="modal-emoji">💀</div>
+    <div class="modal-title">${t('gameOver')}</div>
+    <div class="modal-text">${t('gameOverDesc')}</div>
+    <div style="text-align:center">
+      <button class="btn btn-danger btn-small" onclick="location.reload()">${t('restartBtn')}</button>
+    </div>
+  `;
+  modal.classList.add('active');
+}
+
+/* ===== HELPERS ===== */
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ===== RESIZE ===== */
+window.addEventListener('resize', () => {
+  if (state.phase) drawMap();
+});
+</script>
+</body>
+</html>
